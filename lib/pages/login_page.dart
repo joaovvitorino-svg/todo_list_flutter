@@ -26,7 +26,7 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> login() async {
+  Future<void> _login() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
     final isValid = await _appStorage.validateLogin(username, password);
