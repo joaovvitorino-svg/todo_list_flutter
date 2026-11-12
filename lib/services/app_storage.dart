@@ -1,3 +1,4 @@
+
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_settings.dart';
 
@@ -37,8 +38,10 @@ class AppStorage {
     await ensureDefaultUser();
     final prefs = await SharedPreferences.getInstance();
 
-    final savedUsername = prefs.getString(usernameKey) ?? defaultUserName;
-    final savedPassword = prefs.getString(passwordKey) ?? defaultPassword;
+    final savedUsername =
+        prefs.getString(usernameKey) ?? defaultUserName;
+    final savedPassword =
+        prefs.getString(passwordKey) ?? defaultPassword;
 
     return username == savedUsername && password == savedPassword;
   }
