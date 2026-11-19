@@ -1,9 +1,14 @@
-
+// material.dart traz Scaffold, Switch, ListTile, diálogo e SnackBar.
 import 'package:flutter/material.dart';
+
+// AppStorage lê e grava tema, senha e "estou logado".
 import '../services/app_storage.dart';
 
+// SettingsPage reúne as preferências simples do aplicativo.
 class SettingsPage extends StatefulWidget {
+  // Avisa o TodoApp para voltar ao login.
   final VoidCallback onLogout;
+  // Avisa o TodoApp que o interruptor de tema mudou.
   final ValueChanged<bool> onThemeChanged;
 
   const SettingsPage({
@@ -18,6 +23,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final AppStorage _appStorage = AppStorage();
+  // true enquanto as preferências estão sendo lidas.
   bool _isLoading = true;
   bool _darkMode = false;
   bool _confirmDelete = true;
@@ -30,7 +36,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadSettings() async {
     final settings = await _appStorage.loadSettings();
-
     setState(() {
       _darkMode = settings.darkMode;
       _confirmDelete = settings.confirmDelete;
@@ -38,23 +43,26 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  // Ligar/desligar o modo escuro.
   Future<void> _toggleDarkMode(bool value) async {
     setState(() {
       _darkMode = value;
     });
-
+    // Grava no aparelho para a próxima abertura.
     await _appStorage.saveDarkMode(value);
+    // Avisa o TodoApp para trocar ThemeMode agora.
     widget.onThemeChanged(value);
   }
 
-  Future<void> toogleConfirmDelete(bool value) async {
+  // Ligar/desligar a pergunta antes de excluir.
+  Future<void> _toggleConfirmDelete(bool value) async {
     setState(() {
       _confirmDelete = value;
     });
-
     await _appStorage.saveConfirmDelete(value);
   }
 
+  // Mostra o diálogo "Deseja sair da conta?".
   Future<void> _confirmLogout() async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -76,19 +84,23 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
 
+    // Só continua se o aluno tocou em Sair.
     if (shouldLogout == true) {
+      // Marca isLoggedIn = false. As tarefas continuam salvas.
       await _appStorage.setLoggedIn(false);
-
       if (!mounted) {
         return;
       }
-
+      // Fecha a SettingsPage (volta para a Home por um instante).
       Navigator.pop(context);
+      // TodoApp troca a Home pela LoginPage.
       widget.onLogout();
     }
   }
 
   Future<void> _changePassword() async {
+    // O diálogo devolve true só depois de salvar a senha.
+    // A mensagem de sucesso aparece DEPOIS, com o diálogo já fechado.
     final changed = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -96,6 +108,7 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
 
+    // && = as duas coisas precisam ser verdadeiras.
     if (changed == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -115,12 +128,12 @@ class _SettingsPageState extends State<SettingsPage> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
-                const _SectionTitle('Aparência'),
+                const _SectionTitle('APARÊNCIA'),
+                // SwitchListTile é uma linha com texto + interruptor.
                 SwitchListTile(
                   title: const Text('Modo escuro'),
-                  subtitle: Text(
-                    _darkMode ? '🌙 Ativado' : '☀️ Desativado',
-                  ),
+                  // Operador ternário escolhe o subtítulo.
+                  subtitle: Text(_darkMode ? '🌙 Ativado' : '☀️ Desativado'),
                   value: _darkMode,
                   onChanged: _toggleDarkMode,
                 ),
@@ -131,11 +144,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     'Pedir confirmação antes de apagar uma tarefa',
                   ),
                   value: _confirmDelete,
-                  onChanged: toogleConfirmDelete,
+                  onChanged: _toggleConfirmDelete,
                 ),
                 const _SectionTitle('CONTA'),
                 ListTile(
                   title: const Text('Alterar senha'),
+                  // chevron_right é a setinha > da direita.
                   trailing: const Icon(Icons.chevron_right),
                   onTap: _changePassword,
                 ),
@@ -155,6 +169,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
+// Diálogo de alterar senha. StatefulWidget porque os campos e o erro mudam.
 class _ChangePasswordDialog extends StatefulWidget {
   final AppStorage appStorage;
 
@@ -163,22 +178,17 @@ class _ChangePasswordDialog extends StatefulWidget {
   });
 
   @override
-  State<_ChangePasswordDialog> createState() =>
-      _ChangePasswordDialogState();
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
 }
 
-class _ChangePasswordDialogState
-    extends State<_ChangePasswordDialog> {
-  final TextEditingController _currentController =
-      TextEditingController();
-
-  final TextEditingController _newController =
-      TextEditingController();
-
-  final TextEditingController _confirmController =
-      TextEditingController();
-
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  // Três controllers: senha atual, nova e confirmação.
+  final TextEditingController _currentController = TextEditingController();
+  final TextEditingController _newController = TextEditingController();
+  final TextEditingController _confirmController = TextEditingController();
+  // String? pode ser um texto ou null (sem erro).
   String? _errorMessage;
+  // true enquanto estamos gravando, para travar os botões.
   bool _isSaving = false;
 
   @override
@@ -189,13 +199,12 @@ class _ChangePasswordDialogState
     super.dispose();
   }
 
-  Future<void> save() async {
+  Future<void> _save() async {
     final current = _currentController.text.trim();
     final next = _newController.text.trim();
     final confirm = _confirmController.text.trim();
-
-    final savedPassword =
-        await widget.appStorage.loadPassword();
+    // Senha que está gravada hoje no aparelho.
+    final savedPassword = await widget.appStorage.loadPassword();
 
     if (!mounted) {
       return;
@@ -203,36 +212,36 @@ class _ChangePasswordDialogState
 
     if (current != savedPassword) {
       setState(() {
-        _errorMessage = 'Senha atual incorreta';
+        _errorMessage = 'Senha atual incorreta.';
       });
       return;
     }
 
     if (next.isEmpty) {
       setState(() {
-        _errorMessage = 'Digite a nova senha';
+        _errorMessage = 'A nova senha não pode ficar vazia.';
       });
       return;
     }
 
     if (next != confirm) {
       setState(() {
-        _errorMessage = 'As senhas não coincidem';
+        _errorMessage = 'A confirmação não confere com a nova senha.';
       });
       return;
     }
 
     setState(() {
       _isSaving = true;
+      // null esconde a mensagem vermelha.
       _errorMessage = null;
     });
 
     await widget.appStorage.savePassword(next);
-
     if (!mounted) {
       return;
     }
-
+    // pop fecha o diálogo e devolve true para a SettingsPage.
     Navigator.pop(context, true);
   }
 
@@ -242,6 +251,7 @@ class _ChangePasswordDialogState
       title: const Text('Alterar senha'),
       content: SingleChildScrollView(
         child: Column(
+          // min = a coluna só tem a altura dos campos.
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
@@ -267,9 +277,11 @@ class _ChangePasswordDialogState
                 labelText: 'Confirmar nova senha',
               ),
             ),
+            // if (... ) ...[ ] só inclui estes widgets se houver erro.
             if (_errorMessage != null) ...[
               const SizedBox(height: 12),
               Text(
+                // ! avisa: aqui já sabemos que não é null.
                 _errorMessage!,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.error,
@@ -281,28 +293,20 @@ class _ChangePasswordDialogState
       ),
       actions: [
         TextButton(
-          onPressed: _isSaving
-              ? null
-              : () => Navigator.pop(context),
+          // null no onPressed desativa o botão enquanto salva.
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
         FilledButton(
-          onPressed: _isSaving ? null : save,
-          child: _isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Text('Salvar'),
+          onPressed: _isSaving ? null : _save,
+          child: const Text('Salvar'),
         ),
       ],
     );
   }
 }
 
+// Título de seção (APARÊNCIA, TAREFAS...). Widget privado deste arquivo.
 class _SectionTitle extends StatelessWidget {
   final String title;
 
